@@ -4,6 +4,7 @@
 import Conf from 'conf';
 import os from 'os';
 import path from 'path';
+import * as fs from 'fs';
 
 // Icon display modes
 export type IconMode = 'nerd' | 'unicode' | 'ascii' | 'none';
@@ -297,7 +298,6 @@ export function getConfig(localPath?: string): NavitConfig {
   if (localPath) {
     const localConfigPath = path.join(localPath, '.navit.json');
     try {
-      const fs = require('fs');
       if (fs.existsSync(localConfigPath)) {
         const localConfig = JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'));
         return { ...globalConfig, ...localConfig };

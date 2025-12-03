@@ -83,7 +83,7 @@ export function StatusBar() {
       flexDirection="row"
       justifyContent="space-between"
     >
-// Left side: hints or message
+      {/* Left side: hints or message */}
       <Box flexGrow={1}>
         {error ? (
           <Text color="#F14C4C">⚠ {error}</Text>

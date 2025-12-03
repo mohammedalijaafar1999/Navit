@@ -35,6 +35,12 @@ import { setConfig } from './config.js';
 import path from 'path';
 import os from 'os';
 
+// Cleanup function for proper terminal restoration
+const cleanupTerminal = () => {
+  process.stdout.write('\x1b[?25h');   // Show cursor
+  process.stdout.write('\x1b[?1049l'); // Exit alternate screen
+};
+
 interface AppContentProps {
   startPath: string;
 }
@@ -447,6 +453,7 @@ function AppContent({ startPath }: AppContentProps) {
       if (state.config.exitToCwd) {
         // Could write to a temp file for shell integration
       }
+      cleanupTerminal();
       exit();
       return;
     }
