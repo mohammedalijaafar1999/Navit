@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppState } from '../state/AppState.js';
+import { formatKeybinding } from '../utils/keybindings.js';
 
 interface HelpScreenProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface HelpScreenProps {
 export function HelpScreen({ onClose }: HelpScreenProps) {
   const { state } = useAppState();
   const { theme, config } = state;
+  const kb = config.keybindings;
   
   useInput(() => {
     onClose();
@@ -20,60 +22,59 @@ export function HelpScreen({ onClose }: HelpScreenProps) {
     {
       title: 'Navigation',
       items: [
-        ['j / ↓', 'Move down'],
-        ['k / ↑', 'Move up'],
-        ['h / Backspace', 'Go to parent directory'],
-        ['l / Enter', 'Open folder / Preview file'],
-        ['o', 'Open file with system app'],
-        ['g', 'Go to bookmark'],
-        ['G', 'Go to path'],
+        [formatKeybinding(kb.down), 'Move down'],
+        [formatKeybinding(kb.up), 'Move up'],
+        [formatKeybinding(kb.parent), 'Go to parent directory'],
+        [formatKeybinding(kb.open), 'Open folder / Preview file'],
+        [formatKeybinding(kb.openExternal), 'Open file with system app'],
+        [formatKeybinding(kb.goToBookmark), 'Go to bookmark'],
         ['~', 'Go to home directory'],
       ],
     },
     {
       title: 'Selection & Clipboard',
       items: [
-        ['Space', 'Toggle file selection'],
-        ['Ctrl+A', 'Select all'],
-        ['Ctrl+C', 'Copy selected files'],
-        ['Ctrl+X', 'Cut selected files'],
-        ['Ctrl+V', 'Paste files'],
-        ['y', 'Copy path to clipboard'],
+        [formatKeybinding(kb.select), 'Toggle file selection'],
+        [formatKeybinding(kb.selectAll), 'Select all'],
+        [formatKeybinding(kb.copy), 'Copy selected files'],
+        [formatKeybinding(kb.cut), 'Cut selected files'],
+        [formatKeybinding(kb.paste), 'Paste files'],
+        [formatKeybinding(kb.copyPath), 'Copy path to clipboard'],
       ],
     },
     {
       title: 'File Operations',
       items: [
         ['n', 'Create new file'],
-        ['N', 'Create new folder'],
-        ['r', 'Rename file'],
-        ['Delete', 'Delete selected files'],
+        ['N / Shift+n', 'Create new folder'],
+        ['R / Shift+r', 'Rename file'],
+        [formatKeybinding(kb.delete), 'Delete selected files'],
       ],
     },
     {
       title: 'Search & Filter',
       items: [
-        ['/', 'Filter current directory'],
-        ['Ctrl+F', 'Deep search (recursive)'],
+        [formatKeybinding(kb.search), 'Filter current directory'],
+        [formatKeybinding(kb.deepSearch), 'Deep search (recursive)'],
         ['Esc', 'Clear filter'],
       ],
     },
     {
       title: 'View & Display',
       items: [
-        ['.', 'Toggle hidden files'],
-        ['Ctrl+R', 'Refresh directory'],
-        ['Ctrl+T', 'Toggle terminal'],
+        [formatKeybinding(kb.toggleHidden), 'Toggle hidden files'],
+        [formatKeybinding(kb.refresh), 'Refresh directory'],
+        [formatKeybinding(kb.terminal), 'Toggle terminal'],
       ],
     },
     {
       title: 'Other',
       items: [
-        [':', 'Command palette'],
-        ['?', 'Show this help'],
-        ['b', 'Bookmarks menu'],
-        ['B', 'Add bookmark'],
-        ['q', 'Quit'],
+        [formatKeybinding(kb.command), 'Command palette'],
+        [formatKeybinding(kb.help), 'Show this help'],
+        [formatKeybinding(kb.bookmark), 'Bookmarks menu'],
+        ['B / Shift+b', 'Add bookmark'],
+        [formatKeybinding(kb.quit), 'Quit'],
       ],
     },
   ];

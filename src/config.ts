@@ -36,6 +36,12 @@ export interface KeyBindings {
   copyPath: string[];
   bookmark: string[];
   goToBookmark: string[];
+  newFile: string[];
+  newFolder: string[];
+  rename: string[];
+  home: string[];
+  pageUp: string[];
+  pageDown: string[];
 }
 
 // Preview configuration
@@ -127,15 +133,21 @@ export const defaultKeybindings: KeyBindings = {
   copy: ['ctrl+c'],
   cut: ['ctrl+x'],
   paste: ['ctrl+v'],
-  delete: ['delete'],
+  delete: ['delete', 'ctrl+d'],
   select: [' '],
   selectAll: ['ctrl+a'],
   quit: ['q', 'ctrl+q'],
-  refresh: ['r', 'ctrl+r'],
+  refresh: ['ctrl+r'],
   terminal: ['ctrl+t'],
   copyPath: ['y'],
   bookmark: ['b'],
   goToBookmark: ['g'],
+  newFile: ['n'],
+  newFolder: ['shift+n'],
+  rename: ['shift+r'],
+  home: ['~'],
+  pageUp: ['pageup'],
+  pageDown: ['pagedown'],
 };
 
 // Default theme colors
@@ -258,6 +270,22 @@ const config = new Conf<NavitConfig>({
     },
     confirmDelete: {
       type: 'boolean',
+    },
+    columns: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    followSymlinks: {
+      type: 'boolean',
+    },
+    preview: {
+      type: 'object',
+    },
+    keybindings: {
+      type: 'object',
+    },
+    bookmarks: {
+      type: 'object',
     },
   } as const,
 });

@@ -1,6 +1,6 @@
 // Main App component
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { AppProvider, useAppState, useAppActions, AppMode } from './state/AppState.js';
 import { Header } from './components/Header.js';
@@ -10,6 +10,7 @@ import { StatusBar } from './components/StatusBar.js';
 import { SearchInput, CommandInput, TextInputPrompt, ConfirmPrompt } from './components/InputPrompt.js';
 import { HelpScreen } from './components/HelpScreen.js';
 import { BookmarksList, AddBookmark } from './components/Bookmarks.js';
+import { Terminal } from './components/Terminal.js';
 import { executeCommand } from './commands/index.js';
 import { 
   readDirectory, 
@@ -29,6 +30,7 @@ import {
   getParentDir, 
   isRoot 
 } from './utils/platform.js';
+import { createKeyMatcher, KeyMatcher } from './utils/keybindings.js';
 import { setConfig } from './config.js';
 import path from 'path';
 import os from 'os';
@@ -44,13 +46,28 @@ function AppContent({ startPath }: AppContentProps) {
   const { stdout } = useStdout();
   
   const [addingBookmark, setAddingBookmark] = useState(false);
+  const [showTerminal, setShowTerminal] = useState(false);
+  
+  // Create key matcher from config
+  const keyMatcher = useMemo(() => {
+    return createKeyMatcher(state.config.keybindings);
+  }, [state.config.keybindings]);
   
   // Calculate dimensions
   const terminalWidth = stdout?.columns || 80;
   const terminalHeight = stdout?.rows || 24;
   const listWidth = Math.floor(terminalWidth * 0.35);
   const previewWidth = terminalWidth - listWidth - 2;
-  const contentHeight = terminalHeight - 4; // Header + Status bar
+  
+  // Split height for terminal
+  const mainContentHeight = showTerminal 
+    ? Math.floor((terminalHeight - 4) * 0.6) 
+    : terminalHeight - 4;
+  const terminalPanelHeight = showTerminal 
+    ? terminalHeight - 4 - mainContentHeight 
+    : 0;
+  
+  const contentHeight = mainContentHeight;
   
   // Load directory
   const loadDirectory = useCallback(async (dirPath: string) => {
@@ -113,16 +130,23 @@ function AppContent({ startPath }: AppContentProps) {
   
   // Handle keyboard input
   useInput((input, key) => {
-    // Skip if in a modal mode
+    // Skip if in a modal mode or terminal is open
     if (['search', 'command', 'input', 'confirm', 'help', 'bookmarks'].includes(state.mode)) {
+      return;
+    }
+    
+    // Skip if terminal is focused
+    if (showTerminal && state.terminalOpen) {
       return;
     }
     
     const entries = state.filteredEntries;
     const current = entries[state.selectedIndex];
     
-    // Navigation
-    if (input === 'j' || key.downArrow) {
+    // Use KeyMatcher for configurable keybindings
+    
+    // Navigation - down
+    if (keyMatcher.matches(input, key, 'down')) {
       const newIndex = Math.min(state.selectedIndex + 1, entries.length - 1);
       dispatch({ type: 'SET_SELECTED_INDEX', index: newIndex });
       
@@ -134,7 +158,8 @@ function AppContent({ startPath }: AppContentProps) {
       return;
     }
     
-    if (input === 'k' || key.upArrow) {
+    // Navigation - up
+    if (keyMatcher.matches(input, key, 'up')) {
       const newIndex = Math.max(state.selectedIndex - 1, 0);
       dispatch({ type: 'SET_SELECTED_INDEX', index: newIndex });
       
@@ -163,7 +188,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Open / Enter
-    if (input === 'l' || key.return) {
+    if (keyMatcher.matches(input, key, 'open')) {
       if (current?.isDirectory) {
         navigate(current.path);
       }
@@ -171,7 +196,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Parent directory
-    if (input === 'h' || key.backspace) {
+    if (keyMatcher.matches(input, key, 'parent')) {
       if (!isRoot(state.currentPath)) {
         navigate(getParentDir(state.currentPath));
       }
@@ -179,7 +204,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Open with system app
-    if (input === 'o') {
+    if (keyMatcher.matches(input, key, 'openExternal')) {
       if (current) {
         openWithDefault(current.path);
         actions.setMessage(`Opened: ${current.name}`);
@@ -188,46 +213,46 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Search/Filter
-    if (input === '/') {
+    if (keyMatcher.matches(input, key, 'search')) {
       dispatch({ type: 'SET_MODE', mode: 'search' });
       return;
     }
     
     // Command palette
-    if (input === ':') {
+    if (keyMatcher.matches(input, key, 'command')) {
       dispatch({ type: 'SET_MODE', mode: 'command' });
       return;
     }
     
     // Help
-    if (input === '?') {
+    if (keyMatcher.matches(input, key, 'help')) {
       dispatch({ type: 'SET_MODE', mode: 'help' });
       return;
     }
     
     // Toggle hidden files
-    if (input === '.') {
+    if (keyMatcher.matches(input, key, 'toggleHidden')) {
       dispatch({ type: 'TOGGLE_HIDDEN' });
       loadDirectory(state.currentPath);
       return;
     }
     
     // Toggle selection
-    if (input === ' ') {
+    if (keyMatcher.matches(input, key, 'select')) {
       if (current) {
         dispatch({ type: 'TOGGLE_FILE_SELECTION', path: current.path });
       }
       return;
     }
     
-    // Select all (Ctrl+A)
-    if (key.ctrl && input === 'a') {
+    // Select all
+    if (keyMatcher.matches(input, key, 'selectAll')) {
       dispatch({ type: 'SELECT_ALL' });
       return;
     }
     
-    // Copy (Ctrl+C)
-    if (key.ctrl && input === 'c') {
+    // Copy
+    if (keyMatcher.matches(input, key, 'copy')) {
       const filesToCopy = state.selectedFiles.size > 0
         ? entries.filter(e => state.selectedFiles.has(e.path))
         : current ? [current] : [];
@@ -242,8 +267,8 @@ function AppContent({ startPath }: AppContentProps) {
       return;
     }
     
-    // Cut (Ctrl+X)
-    if (key.ctrl && input === 'x') {
+    // Cut
+    if (keyMatcher.matches(input, key, 'cut')) {
       const filesToCut = state.selectedFiles.size > 0
         ? entries.filter(e => state.selectedFiles.has(e.path))
         : current ? [current] : [];
@@ -258,8 +283,8 @@ function AppContent({ startPath }: AppContentProps) {
       return;
     }
     
-    // Paste (Ctrl+V)
-    if (key.ctrl && input === 'v') {
+    // Paste
+    if (keyMatcher.matches(input, key, 'paste')) {
       if (state.clipboard) {
         const { operation, files } = state.clipboard;
         
@@ -290,7 +315,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Delete
-    if (key.delete || (input === 'd' && key.ctrl)) {
+    if (keyMatcher.matches(input, key, 'delete')) {
       const filesToDelete = state.selectedFiles.size > 0
         ? entries.filter(e => state.selectedFiles.has(e.path))
         : current ? [current] : [];
@@ -323,7 +348,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Copy path to clipboard
-    if (input === 'y') {
+    if (keyMatcher.matches(input, key, 'copyPath')) {
       if (current) {
         copyToClipboard(current.path);
         actions.setMessage('Path copied to clipboard');
@@ -332,32 +357,39 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Refresh
-    if (input === 'r' || (key.ctrl && input === 'r')) {
+    if (keyMatcher.matches(input, key, 'refresh')) {
       refresh();
       actions.setMessage('Directory refreshed');
       return;
     }
     
+    // Terminal toggle
+    if (keyMatcher.matches(input, key, 'terminal')) {
+      setShowTerminal(prev => !prev);
+      dispatch({ type: 'TOGGLE_TERMINAL' });
+      return;
+    }
+    
     // Home directory
-    if (input === '~') {
+    if (keyMatcher.matches(input, key, 'home') || input === '~') {
       navigate(os.homedir());
       return;
     }
     
-    // Bookmarks
-    if (input === 'g') {
+    // Bookmarks - go to
+    if (keyMatcher.matches(input, key, 'goToBookmark')) {
       dispatch({ type: 'SET_MODE', mode: 'bookmarks' });
       return;
     }
     
-    // Add bookmark
-    if (input === 'B') {
+    // Add bookmark (Shift+B or 'B')
+    if (keyMatcher.matches(input, key, 'bookmark') || input === 'B') {
       setAddingBookmark(true);
       return;
     }
     
     // New file
-    if (input === 'n') {
+    if (keyMatcher.matches(input, key, 'newFile') || (input === 'n' && !key.ctrl && !key.shift)) {
       actions.promptInput('New file name:', async (name) => {
         if (name.trim()) {
           try {
@@ -374,7 +406,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // New folder
-    if (input === 'N') {
+    if (keyMatcher.matches(input, key, 'newFolder') || input === 'N' || (input === 'n' && key.shift)) {
       actions.promptInput('New folder name:', async (name) => {
         if (name.trim()) {
           try {
@@ -391,7 +423,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Rename
-    if (input === 'r' && !key.ctrl) {
+    if (keyMatcher.matches(input, key, 'rename') || input === 'R' || (input === 'r' && key.shift)) {
       if (current) {
         actions.promptInput('Rename to:', async (newName) => {
           if (newName.trim() && newName !== current.name) {
@@ -410,7 +442,7 @@ function AppContent({ startPath }: AppContentProps) {
     }
     
     // Quit
-    if (input === 'q') {
+    if (keyMatcher.matches(input, key, 'quit')) {
       // Write last directory if configured
       if (state.config.exitToCwd) {
         // Could write to a temp file for shell integration
@@ -548,13 +580,26 @@ function AppContent({ startPath }: AppContentProps) {
       <Header />
       
       {/* Main content */}
-      <Box flexDirection="row" flexGrow={1}>
+      <Box flexDirection="row" height={mainContentHeight}>
         {/* File list (left pane) */}
-        <FileList height={contentHeight} width={listWidth} />
+        <FileList height={mainContentHeight} width={listWidth} />
         
         {/* Preview panel (right pane) */}
-        <PreviewPanel height={contentHeight} width={previewWidth} />
+        <PreviewPanel height={mainContentHeight} width={previewWidth} />
       </Box>
+      
+      {/* Terminal panel (when open) */}
+      {showTerminal && (
+        <Terminal 
+          height={terminalPanelHeight} 
+          width={terminalWidth - 2}
+          cwd={state.currentPath}
+          onExit={() => {
+            setShowTerminal(false);
+            dispatch({ type: 'TOGGLE_TERMINAL' });
+          }}
+        />
+      )}
       
       {/* Status bar */}
       <StatusBar />

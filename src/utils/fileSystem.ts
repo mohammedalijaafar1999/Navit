@@ -5,7 +5,7 @@ import fsSync from 'fs';
 import path from 'path';
 import os from 'os';
 import { simpleGit, SimpleGit, StatusResult } from 'simple-git';
-import type { IconMode, ThemeColors } from './config.js';
+import type { IconMode, ThemeColors } from '../config.js';
 
 // File entry interface
 export interface FileEntry {
