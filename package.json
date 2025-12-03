@@ -1,0 +1,52 @@
+{
+  "name": "navit",
+  "version": "1.0.0",
+  "description": "A terminal user interface file explorer",
+  "main": "dist/index.js",
+  "bin": {
+    "navit": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/cli.tsx",
+    "build": "tsc",
+    "start": "tsx src/cli.tsx",
+    "lint": "eslint src/**/*.{ts,tsx}",
+    "format": "prettier --write src/**/*.{ts,tsx}"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "file-manager",
+    "file-explorer",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "chokidar": "^5.0.0",
+    "cli-highlight": "^2.1.11",
+    "clipboardy": "^5.0.1",
+    "conf": "^15.0.2",
+    "ink": "^6.5.1",
+    "ink-select-input": "^6.2.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "open": "^11.0.0",
+    "react": "^19.2.1",
+    "simple-git": "^3.30.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node20": "^20.1.8",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "eslint": "^9.39.1",
+    "prettier": "^3.7.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
